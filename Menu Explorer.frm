@@ -85,8 +85,8 @@ Begin VB.Form MenuExplorerWindow
    End
    Begin VB.Menu OptionsMainMenu 
       Caption         =   "&Options"
-      Begin VB.Menu IncludeSystemMenusMenu 
-         Caption         =   "&Include system menus."
+      Begin VB.Menu RetrieveSystemMenusMenu 
+         Caption         =   "&Retrieve system menus."
          Shortcut        =   ^S
       End
       Begin VB.Menu RefreshDisplayMenu 
@@ -113,7 +113,7 @@ On Error GoTo ErrorTrap
       Me.Caption = .Title & ", v" & CStr(.Major) & "." & CStr(.Minor) & CStr(.Revision) & " - " & App.CompanyName
    End With
    
-   IncludeSystemMenusMenu.Checked = GetSystemMenus()
+   RetrieveSystemMenusMenu.Checked = GetSystemMenus()
    
    GetWindowList MenuWindowListBox
    
@@ -170,19 +170,6 @@ On Error GoTo ErrorTrap
    CurrentMenuH NewCurrentMenuH:=LeaveSubMenu()
    DisplayMenuItems CurrentMenuH(), MenuListBox
    MenuAncestorsBox.Text = GetAncestors()
-EndRoutine:
-   Exit Sub
-   
-ErrorTrap:
-   HandleError
-   Resume EndRoutine
-End Sub
-
-'This procedure gives the command to toggle the inclusion of system menus.
-Private Sub IncludeSystemMenusMenu_Click()
-On Error GoTo ErrorTrap
-   IncludeSystemMenusMenu.Checked = GetSystemMenus(Toggle:=True)
-   GetWindowList MenuWindowListBox
 EndRoutine:
    Exit Sub
    
@@ -264,6 +251,20 @@ ErrorTrap:
    HandleError
    Resume EndRoutine
 End Sub
+
+'This procedure gives the command to toggle whether or not system menus are retrieved.
+Private Sub RetrieveSystemMenusMenu_Click()
+On Error GoTo ErrorTrap
+   RetrieveSystemMenusMenu.Checked = GetSystemMenus(Toggle:=True)
+   GetWindowList MenuWindowListBox
+EndRoutine:
+   Exit Sub
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
+End Sub
+
 
 'This procedure gives the command to disable or enable a menu.
 Private Sub ToggleStatusMenu_Click()

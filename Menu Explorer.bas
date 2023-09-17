@@ -3,10 +3,12 @@ Attribute VB_Name = "MenuExplorerModule"
 Option Explicit
 
 'The Microsoft Windows API constants used by this program:
+Private Const ERROR_ACCESS_DENIED As Long = &H5&
+Private Const ERROR_INVALID_MENU_HANDLE As Long = &H579&
+Private Const ERROR_MOD_NOT_FOUND As Long = &H7E&
 Private Const ERROR_SUCCESS As Long = &H0&
 Private Const FORMAT_MESSAGE_FROM_SYSTEM As Long = &H1000&
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200&
-Private Const INVALID_MENU_HANDLE As Long = &H579&
 Private Const MAX_PATH As Long = &H104&
 Private Const MAX_STRING As Long = &HFFFF&
 Private Const MF_BYPOSITION As Long = &H400&
@@ -38,10 +40,10 @@ Private Declare Function SendMessageA Lib "User32.dll" (ByVal hwnd As Long, ByVa
 
 'The constants, structures, and variables used by this program:
 
-'This structure contains information about a menu's ancestors.
-Type AncestorStr
-   AncestorH As Long 'Contains the ancestor menu handles.
-   Position As Long  'Contains the ancestor menu positions.
+'This structure defines the information about a menu's ancestors.
+Private Type AncestorStr
+   AncestorH As Long   'Defines the ancestor menu handles.
+   Position As Long    'Defines the ancestor menu positions.
 End Type
 
 Private Const NO_API_HANDLE As Long = 0   'Defines a null handle for API functions.
@@ -106,12 +108,12 @@ End Function
 'This procedure returns/stores the handle for the selected menu.
 Public Function CurrentMenuH(Optional NewCurrentMenuH As Long = NO_HANDLE) As Long
 On Error GoTo ErrorTrap
-Static MenuH As Long
+Static CurrentCurrentMenuH As Long
 
-   If Not NewCurrentMenuH = NO_HANDLE Then MenuH = NewCurrentMenuH
+   If Not NewCurrentMenuH = NO_HANDLE Then CurrentCurrentMenuH = NewCurrentMenuH
    
 EndRoutine:
-   CurrentMenuH = MenuH
+   CurrentMenuH = CurrentCurrentMenuH
    Exit Function
    
 ErrorTrap:
@@ -194,12 +196,12 @@ End Function
 'This procedure returns/sets the flag indicating whether system menus are retrieved.
 Public Function GetSystemMenus(Optional Toggle As Boolean = False) As Boolean
 On Error GoTo ErrorTrap
-Static SystemMenus As Boolean
+Static CurrentGetSystemMenus As Boolean
 
-   If Toggle Then SystemMenus = Not SystemMenus
+   If Toggle Then CurrentGetSystemMenus = Not CurrentGetSystemMenus
    
 EndRoutine:
-   GetSystemMenus = SystemMenus
+   GetSystemMenus = CurrentGetSystemMenus
    Exit Function
    
 ErrorTrap:
@@ -218,9 +220,9 @@ Dim MenuH As Long
       ReDim Ancestors(0 To 0) As AncestorStr
       
       If GetSystemMenus() Then
-         MenuH = CheckForError(GetSystemMenu(WindowH, CLng(False)), INVALID_MENU_HANDLE)
+         MenuH = CheckForError(GetSystemMenu(WindowH, CLng(False)), Ignored:=ERROR_INVALID_MENU_HANDLE)
       Else
-         MenuH = CheckForError(GetMenu(WindowH), INVALID_MENU_HANDLE)
+         MenuH = CheckForError(GetMenu(WindowH), Ignored:=ERROR_INVALID_MENU_HANDLE)
       End If
    End If
    
@@ -291,7 +293,7 @@ Dim PreviousRow As Long
 
    ReDim WindowsH(0 To 0) As Long
    
-   CheckForError EnumWindows(AddressOf WindowHandler, CLng(0)), INVALID_MENU_HANDLE
+   CheckForError EnumWindows(AddressOf WindowHandler, CLng(0)), Ignored:=ERROR_INVALID_MENU_HANDLE
    
    With Target
       PreviousRow = .Row
@@ -325,11 +327,11 @@ Dim ProcessId As Long
  
    ImageName = vbNullString
    CheckForError GetWindowThreadProcessId(WindowH, ProcessId)
-   ProcessH = CheckForError(OpenProcess(PROCESS_ALL_ACCESS, CLng(False), ProcessId))
+   ProcessH = CheckForError(OpenProcess(PROCESS_ALL_ACCESS, CLng(False), ProcessId), Ignored:=ERROR_ACCESS_DENIED)
    If Not ProcessH = NO_API_HANDLE Then
       ImageName = String$(MAX_PATH, vbNullChar)
-      Length = CheckForError(GetProcessImageFileNameW(ProcessH, StrPtr(ImageName), Len(ImageName)))
-      CheckForError CloseHandle(ProcessH)
+      Length = CheckForError(GetProcessImageFileNameW(ProcessH, StrPtr(ImageName), Len(ImageName)), Ignored:=ERROR_MOD_NOT_FOUND)
+      CheckForError CloseHandle(ProcessH), Ignored:=ERROR_MOD_NOT_FOUND
       ImageName = Left$(ImageName, Length)
    End If
    
@@ -444,9 +446,9 @@ On Error GoTo ErrorTrap
 Dim MenuH As Long
 
    If GetSystemMenus() Then
-      MenuH = CheckForError(GetSystemMenu(hwnd, CLng(False)), INVALID_MENU_HANDLE)
+      MenuH = CheckForError(GetSystemMenu(hwnd, CLng(False)), Ignored:=ERROR_INVALID_MENU_HANDLE)
    Else
-      MenuH = CheckForError(GetMenu(hwnd), INVALID_MENU_HANDLE)
+      MenuH = CheckForError(GetMenu(hwnd), Ignored:=ERROR_INVALID_MENU_HANDLE)
    End If
    
    If CBool(IsMenu(MenuH)) Then
