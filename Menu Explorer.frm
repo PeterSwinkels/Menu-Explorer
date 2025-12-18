@@ -114,7 +114,6 @@ On Error GoTo ErrorTrap
    End With
    
    RetrieveSystemMenusMenu.Checked = GetSystemMenus()
-   
    GetWindowList MenuWindowListBox
    
    MenuListBox.Row = 0
@@ -150,18 +149,6 @@ On Error Resume Next
    MenuWindowListBox.ColWidth(0) = ((MenuListBox.Width * 3) * Screen.TwipsPerPixelX) / MenuWindowListBox.Cols
    MenuWindowListBox.ColWidth(1) = ((MenuListBox.Width * 8) * Screen.TwipsPerPixelX) / MenuWindowListBox.Cols
    MenuWindowListBox.ColWidth(2) = ((MenuListBox.Width * 12) * Screen.TwipsPerPixelX) / MenuWindowListBox.Cols
-End Sub
-
-'This procedure closes this program when this window is closed.
-Private Sub Form_Unload(Cancel As Integer)
-On Error GoTo ErrorTrap
-   End
-EndRoutine:
-   Exit Sub
-   
-ErrorTrap:
-   HandleError
-   Resume EndRoutine
 End Sub
 
 'This procedure gives the command to exit a sub menu.

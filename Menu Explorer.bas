@@ -132,7 +132,7 @@ Dim Text As String
    With Target
       PreviousRow = .Row
       .Rows = 1
-         For Position = 0 To CheckForError(GetMenuItemCount(MenuH)) - 1
+      For Position = 0 To CheckForError(GetMenuItemCount(MenuH)) - 1
          .Rows = .Rows + 1
          .Row = .Rows - 1
                     
@@ -142,7 +142,7 @@ Dim Text As String
          .Col = 1: .Text = GetMenuStateText(MenuH, Position)
       Next Position
       If PreviousRow < .Rows Then .Row = PreviousRow Else .Row = .Rows - 1
-      If .Row > 0 Then .TopRow = .Row
+      If .Row > 0 Then .TopRow = 1
    End With
    
 EndRoutine:
@@ -306,7 +306,7 @@ Dim PreviousRow As Long
          .Col = 2: .Text = GetWindowProcessImageName(WindowsH(Index))
       Next Index
       If PreviousRow < .Rows Then .Row = PreviousRow Else .Row = .Rows - 1
-      If .Row > 0 Then .TopRow = .Row
+      If .Row > 0 Then .TopRow = 1
    End With
 EndRoutine:
    Exit Sub
