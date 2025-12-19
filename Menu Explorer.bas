@@ -1,6 +1,9 @@
 Attribute VB_Name = "MenuExplorerModule"
 'This module contains this program's core procedures.
+Option Base 0
+Option Compare Binary
 Option Explicit
+Option Private Module
 
 'The Microsoft Windows API constants used by this program:
 Private Const ERROR_ACCESS_DENIED As Long = &H5&
@@ -49,10 +52,41 @@ End Type
 Private Const NO_API_HANDLE As Long = 0   'Defines a null handle for API functions.
 Private Const NO_HANDLE As Long = -1      'Defines a null handle for this program's functions.
 
-Public WindowsH() As Long             'Contains the list of handles of windows that contain menu's.
-Private Ancestors() As AncestorStr    'Contains the stack of ancestor menu's for the active sub menu.
+Public WindowsH() As Long            'Contains the list of handles of windows that contain menus.
+Private Ancestors() As AncestorStr   'Contains the stack of ancestor menus for the active submenu.
 
-'This procedure appends the specified state description to specified text and inserts delimiters.
+'This procedure adds the items contained by the specified menu to the specified grid.
+Public Sub AddMenuItems(MenuH As Long, Target As MSFlexGrid)
+On Error GoTo ErrorTrap
+Dim Position As Long
+Dim PreviousRow As Long
+Dim Text As String
+
+   With Target
+      PreviousRow = .Row
+      .Rows = 1
+      For Position = 0 To CheckForError(GetMenuItemCount(MenuH)) - 1
+         .Rows = .Rows + 1
+         .Row = .Rows - 1
+                    
+         Text = Trim$(Replace(GetMenuText(MenuH, Position), vbTab, " "))
+         If Text = vbNullString Then Text = "-"
+         .Col = 0: .CellFontBold = CBool(IsMenu(CheckForError(GetSubMenu(MenuH, Position)))): .Text = Text
+         .Col = 1: .Text = GetMenuStateText(MenuH, Position)
+      Next Position
+      If PreviousRow < .Rows Then .Row = PreviousRow Else .Row = .Rows - 1
+      If .Row > 0 Then .TopRow = 1
+   End With
+   
+EndRoutine:
+   Exit Sub
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
+End Sub
+
+'This procedure returns the specified text with the specified state description appended.
 Private Function AppendStateText(Text As String, State As String) As String
 On Error GoTo ErrorTrap
 Dim Result As String
@@ -70,7 +104,7 @@ ErrorTrap:
    Resume EndRoutine
 End Function
 
-'This procedure checks whether any API errors that have occurred and handles them.
+'This procedure checks whether any API errors that have occurred, handles them, and returns the specified return value.
 Private Function CheckForError(ReturnValue As Long, Optional Ignored As Long = ERROR_SUCCESS) As Long
 Dim Description As String
 Dim ErrorCode As Long
@@ -105,7 +139,7 @@ ErrorTrap:
    Resume EndRoutine
 End Function
 
-'This procedure returns/stores the handle for the selected menu.
+'This procedure manages the selected menu's handle and returns it.
 Public Function CurrentMenuH(Optional NewCurrentMenuH As Long = NO_HANDLE) As Long
 On Error GoTo ErrorTrap
 Static CurrentCurrentMenuH As Long
@@ -122,56 +156,26 @@ ErrorTrap:
 End Function
 
 
-'This procedure displays the items contained by the specified menu in the specified list.
-Public Sub DisplayMenuItems(MenuH As Long, Target As MSFlexGrid)
+
+'This procedure manages the ancestor stack and returns the specified menu's submenu handle.
+Public Function EnterSubmenu(ParentMenuH As Long, Position As Long) As Long
 On Error GoTo ErrorTrap
-Dim Position As Long
-Dim PreviousRow As Long
-Dim Text As String
+Dim SubmenuH As Long
 
-   With Target
-      PreviousRow = .Row
-      .Rows = 1
-      For Position = 0 To CheckForError(GetMenuItemCount(MenuH)) - 1
-         .Rows = .Rows + 1
-         .Row = .Rows - 1
-                    
-         Text = Trim$(Replace(GetMenuText(MenuH, Position), vbTab, " "))
-         If Text = vbNullString Then Text = "-"
-         .Col = 0: .CellFontBold = CBool(IsMenu(CheckForError(GetSubMenu(MenuH, Position)))): .Text = Text
-         .Col = 1: .Text = GetMenuStateText(MenuH, Position)
-      Next Position
-      If PreviousRow < .Rows Then .Row = PreviousRow Else .Row = .Rows - 1
-      If .Row > 0 Then .TopRow = 1
-   End With
-   
-EndRoutine:
-   Exit Sub
-   
-ErrorTrap:
-   HandleError
-   Resume EndRoutine
-End Sub
-
-'This procedure returns the handle for the sub menu at the specified position and updates the ancestor stack.
-Public Function EnterSubMenu(ParentMenuH As Long, Position As Long) As Long
-On Error GoTo ErrorTrap
-Dim SubMenuH As Long
-
-   SubMenuH = NO_API_HANDLE
+   SubmenuH = NO_API_HANDLE
    If CBool(IsMenu(ParentMenuH)) Then
-      SubMenuH = CheckForError(GetSubMenu(ParentMenuH, Position))
-      If CBool(IsMenu(SubMenuH)) Then
+      SubmenuH = CheckForError(GetSubMenu(ParentMenuH, Position))
+      If CBool(IsMenu(SubmenuH)) Then
          Ancestors(UBound(Ancestors())).AncestorH = ParentMenuH
          Ancestors(UBound(Ancestors())).Position = Position
          ReDim Preserve Ancestors(LBound(Ancestors()) To UBound(Ancestors()) + 1) As AncestorStr
       Else
-         SubMenuH = ParentMenuH
+         SubmenuH = ParentMenuH
       End If
    End If
    
 EndRoutine:
-   EnterSubMenu = SubMenuH
+   EnterSubmenu = SubmenuH
    Exit Function
    
 ErrorTrap:
@@ -180,8 +184,9 @@ ErrorTrap:
 End Function
 
 
-'This procedure returns a list of a menu's ancestors.
+'This procedure returns the list of a menu's ancestors.
 Public Function GetAncestors() As String
+On Error GoTo ErrorTrap
 Dim Index As Long
 Dim Result As String
 
@@ -189,11 +194,17 @@ Dim Result As String
    For Index = LBound(Ancestors()) To UBound(Ancestors()) - 1
       Result = Result & "\" & GetMenuText(Ancestors(Index).AncestorH, Ancestors(Index).Position)
    Next Index
-   
+
+EndRoutine:
    GetAncestors = Result
+   Exit Function
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
 End Function
 
-'This procedure returns/sets the flag indicating whether system menus are retrieved.
+'This procedure manages the indicator for whether or not system menu are retrieved and returns it.
 Public Function GetSystemMenus(Optional Toggle As Boolean = False) As Boolean
 On Error GoTo ErrorTrap
 Static CurrentGetSystemMenus As Boolean
@@ -210,7 +221,7 @@ ErrorTrap:
 End Function
 
 
-'This procedure returns the menu handle for the specified window and clears the ancestor list.
+'This procedure returns the menu handle for the specified window.
 Public Function GetWindowMenuH(WindowH As Long) As Long
 On Error GoTo ErrorTrap
 Dim MenuH As Long
@@ -382,7 +393,7 @@ ErrorTrap:
    HandleError
    Resume EndRoutine
 End Sub
-'This procedure returns the handle for the active menu's parent and updates the ancestor stack.
+'This procedure returns the handle for the active menu's parent.
 Public Function LeaveSubMenu() As Long
 On Error GoTo ErrorTrap
 Dim ParentMenuH As Long
@@ -414,6 +425,23 @@ ErrorTrap:
    HandleError
    Resume EndRoutine
 End Sub
+
+
+'This procedure returns this program's information.
+Public Function ProgramInformation() As String
+Dim Information As String
+
+   With App
+      Information = .Title & " v" & CStr(.Major) & "." & CStr(.Minor) & CStr(.Revision) & " - " & App.CompanyName & ", ***2012***"
+   End With
+EndRoutine:
+   ProgramInformation = Information
+   Exit Function
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
+End Function
 
 
 'This procedure disables/enables the menu at the specified position.

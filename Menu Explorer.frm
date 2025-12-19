@@ -74,13 +74,17 @@ Begin VB.Form MenuExplorerWindow
    End
    Begin VB.Menu MenuMainMenu 
       Caption         =   "&Menu"
+      Begin VB.Menu EnterSubmenuMenu 
+         Caption         =   "&Enter submenu."
+         Shortcut        =   ^E
+      End
       Begin VB.Menu GoToParentMenu 
          Caption         =   "&Go to parent."
          Shortcut        =   ^P
       End
       Begin VB.Menu ToggleStatusMenu 
          Caption         =   "&Toggle status."
-         Shortcut        =   ^E
+         Shortcut        =   ^T
       End
    End
    Begin VB.Menu OptionsMainMenu 
@@ -101,7 +105,25 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 'This module contains this program's interface window.
+Option Base 0
+Option Compare Binary
 Option Explicit
+
+'This procedure enters the selected submenu.
+Private Sub EnterSubmenuMenu_Click()
+On Error GoTo ErrorTrap
+   If MenuListBox.Row > 0 Then
+      CurrentMenuH NewCurrentMenuH:=EnterSubmenu(CurrentMenuH(), MenuListBox.Row - 1)
+      AddMenuItems CurrentMenuH(), MenuListBox
+      MenuAncestorsBox.Text = GetAncestors()
+   End If
+EndRoutine:
+   Exit Sub
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
+End Sub
 
 'This procedure is executed when this window is opened.
 Private Sub Form_Load()
@@ -109,9 +131,7 @@ On Error GoTo ErrorTrap
    Me.Width = Screen.Width / 2
    Me.Height = Screen.Height / 2
    
-   With App
-      Me.Caption = .Title & ", v" & CStr(.Major) & "." & CStr(.Minor) & CStr(.Revision) & " - " & App.CompanyName
-   End With
+   Me.Caption = ProgramInformation()
    
    RetrieveSystemMenusMenu.Checked = GetSystemMenus()
    GetWindowList MenuWindowListBox
@@ -151,11 +171,11 @@ On Error Resume Next
    MenuWindowListBox.ColWidth(2) = ((MenuListBox.Width * 12) * Screen.TwipsPerPixelX) / MenuWindowListBox.Cols
 End Sub
 
-'This procedure gives the command to exit a sub menu.
+'This procedure gives the command to exit a submenu.
 Private Sub GoToParentMenu_Click()
 On Error GoTo ErrorTrap
    CurrentMenuH NewCurrentMenuH:=LeaveSubMenu()
-   DisplayMenuItems CurrentMenuH(), MenuListBox
+   AddMenuItems CurrentMenuH(), MenuListBox
    MenuAncestorsBox.Text = GetAncestors()
 EndRoutine:
    Exit Sub
@@ -171,7 +191,7 @@ End Sub
 'This procedure displays information about this program.
 Private Sub InformationMenu_Click()
 On Error GoTo ErrorTrap
-   MsgBox App.Comments, vbInformation
+   MsgBox App.Comments, vbInformation, ProgramInformation()
 EndRoutine:
    Exit Sub
    
@@ -181,12 +201,12 @@ ErrorTrap:
 End Sub
 
 
-'This procedure enters the selected sub menu if there is one.
+'This procedure enters the selected submenu when the user double clicks on it.
 Private Sub MenuListBox_DblClick()
 On Error GoTo ErrorTrap
    If MenuListBox.Row > 0 Then
-      CurrentMenuH NewCurrentMenuH:=EnterSubMenu(CurrentMenuH(), MenuListBox.Row - 1)
-      DisplayMenuItems CurrentMenuH(), MenuListBox
+      CurrentMenuH NewCurrentMenuH:=EnterSubmenu(CurrentMenuH(), MenuListBox.Row - 1)
+      AddMenuItems CurrentMenuH(), MenuListBox
       MenuAncestorsBox.Text = GetAncestors()
    End If
 EndRoutine:
@@ -197,13 +217,37 @@ ErrorTrap:
    Resume EndRoutine
 End Sub
 
+'This procedure manages the user's keystrokes.
+Private Sub MenuListBox_KeyUp(KeyCode As Integer, Shift As Integer)
+On Error GoTo ErrorTrap
+   Select Case KeyCode
+      Case vbKeyBack
+         CurrentMenuH NewCurrentMenuH:=LeaveSubMenu()
+         AddMenuItems CurrentMenuH(), MenuListBox
+         MenuAncestorsBox.Text = GetAncestors()
+      Case vbKeyReturn
+         If MenuListBox.Row > 0 Then
+            CurrentMenuH NewCurrentMenuH:=EnterSubmenu(CurrentMenuH(), MenuListBox.Row - 1)
+            AddMenuItems CurrentMenuH(), MenuListBox
+            MenuAncestorsBox.Text = GetAncestors()
+         End If
+   End Select
+EndRoutine:
+   Exit Sub
+   
+ErrorTrap:
+   HandleError
+   Resume EndRoutine
+End Sub
+
+
 'This procedure gives the command to display the menus for the selected window.
 Private Sub MenuWindowListBox_RowColChange()
 On Error GoTo ErrorTrap
 
    If MenuWindowListBox.Row > 0 Then
       CurrentMenuH NewCurrentMenuH:=GetWindowMenuH(WindowsH(MenuWindowListBox.Row - 1))
-      DisplayMenuItems CurrentMenuH(), MenuListBox
+      AddMenuItems CurrentMenuH(), MenuListBox
       MenuAncestorsBox.Text = GetAncestors()
    End If
 EndRoutine:
@@ -259,7 +303,7 @@ On Error GoTo ErrorTrap
 
    If MenuListBox.Row > 0 Then
       ToggleMenuEnabledState CurrentMenuH(), MenuListBox.Row - 1
-      DisplayMenuItems CurrentMenuH(), MenuListBox
+      AddMenuItems CurrentMenuH(), MenuListBox
    End If
 EndRoutine:
    Exit Sub
