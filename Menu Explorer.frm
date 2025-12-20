@@ -109,6 +109,8 @@ Option Base 0
 Option Compare Binary
 Option Explicit
 
+DefLng A-Z
+
 'This procedure enters the selected submenu.
 Private Sub EnterSubmenuMenu_Click()
 On Error GoTo ErrorTrap

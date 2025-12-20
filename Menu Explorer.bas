@@ -5,6 +5,8 @@ Option Compare Binary
 Option Explicit
 Option Private Module
 
+DefLng A-Z
+
 'The Microsoft Windows API constants used by this program:
 Private Const ERROR_ACCESS_DENIED As Long = &H5&
 Private Const ERROR_INVALID_MENU_HANDLE As Long = &H579&
